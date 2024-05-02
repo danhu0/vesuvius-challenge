@@ -360,7 +360,11 @@ def get_train_valid_dataset():
     valid_masks = {}
     valid_xyxys = []
     valid_ids = []
-    train_ids = set(['20230702185753','20230929220926','20231005123336','20231007101619','20231012184423','20231016151002','20231022170901','20231031143852','20231106155351','20231210121321','20231221180251','20230820203112']) - set([CFG.valid_id])
+
+    # train_ids = set(['20230702185753','20230929220926','20231005123336','20231007101619','20231012184423','20231016151002','20231022170901','20231031143852','20231106155351','20231210121321','20231221180251','20230820203112']) - set([CFG.valid_id])
+    train_ids = set(['20231005123333','20231022170900']) - set([CFG.valid_id])
+    #valid_ids = 20230820203112
+
     valid_ids = set([CFG.valid_id])
     train_images, train_masks, train_xyxys, train_ids = get_xyxys(train_ids, False)
     valid_images, valid_masks, valid_xyxys, valid_ids = get_xyxys(valid_ids, True)
