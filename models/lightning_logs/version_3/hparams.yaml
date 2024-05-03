@@ -1,0 +1,6 @@
+enc: i3d
+pred_shape: !!python/tuple
+- 7424
+- 2816
+size: 64
+with_norm: false

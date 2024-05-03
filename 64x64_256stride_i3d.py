@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import WandbLogger
+# from pytorch_lightning.loggers import WandbLogger
 
 import random
 import yaml
@@ -16,7 +16,7 @@ import yaml
 import numpy as np
 import pandas as pd
 
-import wandb
+# import wandb
 
 from torch.utils.data import DataLoader
 
@@ -54,6 +54,7 @@ import time
 import json
 import numba
 from numba import jit
+torch.backends.cudnn.benchmark = False
 
 class CFG:
     # ============== comp exp name =============
@@ -82,7 +83,7 @@ class CFG:
     tile_size = 256
     stride = tile_size // 8
 
-    train_batch_size = 256 # 32
+    train_batch_size = 32 # 32, 256
     valid_batch_size = train_batch_size
     use_amp = True
 
@@ -111,7 +112,7 @@ class CFG:
     max_grad_norm = 100
 
     print_freq = 50
-    num_workers = 8
+    num_workers = 0
 
     seed = 0
 
@@ -201,9 +202,9 @@ def cfg_init(cfg, mode='train'):
 
     if mode == 'train':
         make_dirs(cfg)
-cfg_init(CFG)
+# cfg_init(CFG)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def read_image_mask(fragment_id,start_idx=15,end_idx=45):
 
@@ -362,7 +363,7 @@ def get_train_valid_dataset():
 
     # train_ids = set(['20230702185753','20230929220926','20231005123336','20231007101619','20231012184423','20231016151002','20231022170901','20231031143852','20231106155351','20231210121321','20231221180251','20230820203112']) - set([CFG.valid_id])
     # train_ids = set(['20231005123333','20230820203112']) - set([CFG.valid_id])
-    train_ids = set(['20230820203112'])
+    train_ids = set(['20231005123333']) # 20231005123333
     #valid_ids = 20230820203112
 
     valid_ids = set([CFG.valid_id])
@@ -370,7 +371,7 @@ def get_train_valid_dataset():
     valid_images, valid_masks, valid_xyxys, valid_ids = get_xyxys(valid_ids, True)
     return train_images, train_masks, train_xyxys, train_ids, valid_images, valid_masks, valid_xyxys, valid_ids
 
-def get_transforms(data, cfg):
+def get_transforms(data, cfg:CFG):
     if data == 'train':
         aug = A.Compose(cfg.train_aug_list)
     elif data == 'valid':
@@ -562,7 +563,7 @@ class RegressionPLModel(pl.LightningModule):
     
     def on_validation_epoch_end(self):
         self.mask_pred = np.divide(self.mask_pred, self.mask_count, out=np.zeros_like(self.mask_pred), where=self.mask_count!=0)
-        wandb_logger.log_image(key="masks", images=[np.clip(self.mask_pred,0,1)], caption=["probs"])
+        # wandb_logger.log_image(key="masks", images=[np.clip(self.mask_pred,0,1)], caption=["probs"])
 
         #reset mask
         self.mask_pred = np.zeros(self.hparams.pred_shape)
@@ -609,69 +610,77 @@ def get_scheduler(cfg, optimizer):
 def scheduler_step(scheduler, avg_val_loss, epoch):
     scheduler.step(epoch)
    
+def main():
 
+    cfg_init(CFG)
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-fragment_id = CFG.valid_id
-
-valid_mask_gt = cv2.imread(CFG.comp_dataset_path + f"train_scrolls/{fragment_id}/{fragment_id}_inklabels.png", 0)
-# valid_mask_gt=cv2.resize(valid_mask_gt,(valid_mask_gt.shape[1]//2,valid_mask_gt.shape[0]//2),cv2.INTER_AREA)
-pred_shape=valid_mask_gt.shape
-torch.set_float32_matmul_precision('medium')
-
-fragments=['20230820203112']
-enc_i,enc,fold=0,'i3d',0
-for fid in fragments:
-    CFG.valid_id=fid
     fragment_id = CFG.valid_id
-    run_slug=f'training_scrolls_valid={fragment_id}_{CFG.size}x{CFG.size}_submissionlabels_wild11'
 
     valid_mask_gt = cv2.imread(CFG.comp_dataset_path + f"train_scrolls/{fragment_id}/{fragment_id}_inklabels.png", 0)
-
+    # valid_mask_gt=cv2.resize(valid_mask_gt,(valid_mask_gt.shape[1]//2,valid_mask_gt.shape[0]//2),cv2.INTER_AREA)
     pred_shape=valid_mask_gt.shape
-    train_images, train_masks, train_xyxys, train_ids, valid_images, valid_masks, valid_xyxys, valid_ids = get_train_valid_dataset()
-    print(len(train_images))
-    valid_xyxys = np.stack(valid_xyxys)
-    train_dataset = CustomDataset(
-        train_images, CFG, labels=train_masks, xyxys=train_xyxys, ids=train_ids, transform=get_transforms(data='train', cfg=CFG))
-    valid_dataset = CustomDataset(
-        valid_images, CFG,xyxys=valid_xyxys, labels=valid_masks, ids=valid_ids, transform=get_transforms(data='valid', cfg=CFG))
+    torch.set_float32_matmul_precision('medium')
 
-    train_loader = DataLoader(train_dataset,
-                                batch_size=CFG.train_batch_size,
-                                shuffle=True,
-                                num_workers=CFG.num_workers, pin_memory=True, drop_last=True,
-                                )
-    valid_loader = DataLoader(valid_dataset,
-                                batch_size=CFG.valid_batch_size,
-                                shuffle=False,
-                                num_workers=CFG.num_workers, pin_memory=True, drop_last=True)
+    fragments=['20230820203112']
+    enc_i,enc,fold=0,'i3d',0
+    for fid in fragments:
+        CFG.valid_id=fid
+        fragment_id = CFG.valid_id
+        run_slug=f'training_scrolls_valid={fragment_id}_{CFG.size}x{CFG.size}_submissionlabels_wild11'
 
-    wandb_logger = WandbLogger(project="vesivus",name=run_slug+f'{enc}_finetune')
-    norm=fold==1
-    model=RegressionPLModel(enc='i3d',pred_shape=pred_shape,size=CFG.size)
+        valid_mask_gt = cv2.imread(CFG.comp_dataset_path + f"train_scrolls/{fragment_id}/{fragment_id}_inklabels.png", 0)
 
-    print('FOLD : ',fold)
-    wandb_logger.watch(model, log="all", log_freq=100)
-    multiplicative = lambda epoch: 0.9
+        pred_shape=valid_mask_gt.shape
+        train_images, train_masks, train_xyxys, train_ids, valid_images, valid_masks, valid_xyxys, valid_ids = get_train_valid_dataset()
+        print(len(train_images))
+        valid_xyxys = np.stack(valid_xyxys)
+        train_dataset = CustomDataset(
+            train_images, CFG, labels=train_masks, xyxys=train_xyxys, ids=train_ids, transform=get_transforms(data='train', cfg=CFG))
+        valid_dataset = CustomDataset(
+            valid_images, CFG,xyxys=valid_xyxys, labels=valid_masks, ids=valid_ids, transform=get_transforms(data='valid', cfg=CFG))
 
-    trainer = pl.Trainer(
-        max_epochs=24,
-        accelerator="gpu", #gpu
-        devices=1,
-        logger=wandb_logger,
-        default_root_dir="./models",
-        accumulate_grad_batches=1,
-        precision='16-mixed',
-        gradient_clip_val=1.0,
-        gradient_clip_algorithm="norm",
-        strategy='ddp_find_unused_parameters_true',
-        callbacks=[ModelCheckpoint(filename=f'wild12_64_{fid}_{fold}_fr_{enc}'+'{epoch}',dirpath=CFG.model_dir,monitor='train/total_loss',mode='min',save_top_k=CFG.epochs),
+        train_loader = DataLoader(train_dataset,
+                                    batch_size=CFG.train_batch_size,
+                                    shuffle=True,
+                                    num_workers=CFG.num_workers, pin_memory=True, drop_last=True, 
+                                    # persistent_workers=True
+                                    )
+        valid_loader = DataLoader(valid_dataset,
+                                    batch_size=CFG.valid_batch_size,
+                                    shuffle=False,
+                                    num_workers=CFG.num_workers, pin_memory=True, drop_last=True, 
+                                    # persistent_workers=True
+                                    )
 
-                    ],
+        # wandb_logger = WandbLogger(project="vesivus",name=run_slug+f'{enc}_finetune')
+        norm=fold==1
+        model=RegressionPLModel(enc='i3d',pred_shape=pred_shape,size=CFG.size)
 
-    )
-    trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
+        print('FOLD : ',fold)
+        # wandb_logger.watch(model, log="all", log_freq=100)
+        multiplicative = lambda epoch: 0.9
 
-    wandb.finish()
+        trainer = pl.Trainer(
+            max_epochs=24,
+            accelerator="gpu", #gpu
+            devices=1,
+            # logger=wandb_logger,
+            default_root_dir="./models",
+            accumulate_grad_batches=1,
+            precision='16-mixed',
+            gradient_clip_val=1.0,
+            gradient_clip_algorithm="norm",
+            # strategy='ddp_find_unused_parameters_true',
+            callbacks=[ModelCheckpoint(filename=f'wild12_64_{fid}_{fold}_fr_{enc}'+'{epoch}',dirpath=CFG.model_dir,monitor='train/total_loss',mode='min',save_top_k=CFG.epochs),
 
+                        ],
+
+        )
+        trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
+
+        # wandb.finish()
+
+if __name__ == "__main__":
+    main()
