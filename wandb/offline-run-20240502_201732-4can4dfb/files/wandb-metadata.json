@@ -1,0 +1,49 @@
+{
+    "os": "macOS-14.4.1-arm64-arm-64bit",
+    "python": "3.12.3",
+    "heartbeatAt": "2024-05-03T00:17:32.241897",
+    "startedAt": "2024-05-03T00:17:32.188850",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/Users/danielhu/Documents/Vesuvius/vesuvius-challenge/64x64_256stride_i3d.py",
+    "codePathLocal": "64x64_256stride_i3d.py",
+    "codePath": "64x64_256stride_i3d.py",
+    "git": {
+        "remote": "https://github.com/danhu0/vesuvius-challenge.git",
+        "commit": "fa0be13ba62a1609fe5b14c1db07b9126ee6d977"
+    },
+    "email": "daniel_hu4@brown.edu",
+    "root": "/Users/danielhu/Documents/Vesuvius/vesuvius-challenge",
+    "host": "dan-hu-mac-3.devices.brown.edu",
+    "username": "danielhu",
+    "executable": "/Users/danielhu/miniconda3/envs/vesuviusgp/bin/python",
+    "cpu_count": 8,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 3504,
+        "min": 600,
+        "max": 3504
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3504,
+            "min": 600,
+            "max": 3504
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 228.27386474609375,
+            "used": 9.536117553710938
+        }
+    },
+    "gpuapple": {
+        "type": "arm",
+        "vendor": "Apple"
+    },
+    "memory": {
+        "total": 16.0
+    }
+}

@@ -60,12 +60,11 @@ class CFG:
     comp_name = 'vesuvius'
 
     # comp_dir_path = './'
-
-    comp_dir_path = '/ifs/CS/replicated/data/people/dhu34/vesuvius-challenge/vesuvius_model/training/'
-    comp_folder_name = '/ifs/CS/replicated/data/people/dhu34/vesuvius-challenge/vesuvius_model/training/'
+    comp_dir_path = './'
+    comp_folder_name = './'
     # comp_dataset_path = f'{comp_dir_path}datasets/{comp_folder_name}/'
-    comp_dataset_path = f'/ifs/CS/replicated/data/people/dhu34/vesuvius-challenge/vesuvius_model/training/'
-
+    comp_dataset_path = f'./'
+    
     exp_name = 'pretraining_all'
 
     # ============== pred target =============
@@ -112,14 +111,14 @@ class CFG:
     max_grad_norm = 100
 
     print_freq = 50
-    num_workers = 10
+    num_workers = 8
 
     seed = 0
 
     # ============== set dataset path =============
     print('set dataset path')
 
-    outputs_path = f'/ifs/CS/replicated/data/people/dhu34/vesuvius-challenge/vesuvius_model/trainingoutputs'
+    outputs_path = f'./outputs/{comp_name}/{exp_name}/'
 
     submission_dir = outputs_path + 'submissions/'
     submission_path = submission_dir + f'submission_{exp_name}.csv'
@@ -362,7 +361,8 @@ def get_train_valid_dataset():
     valid_ids = []
 
     # train_ids = set(['20230702185753','20230929220926','20231005123336','20231007101619','20231012184423','20231016151002','20231022170901','20231031143852','20231106155351','20231210121321','20231221180251','20230820203112']) - set([CFG.valid_id])
-    train_ids = set(['20231005123333','20231022170900']) - set([CFG.valid_id])
+    # train_ids = set(['20231005123333','20230820203112']) - set([CFG.valid_id])
+    train_ids = set(['20230820203112'])
     #valid_ids = 20230820203112
 
     valid_ids = set([CFG.valid_id])
@@ -657,10 +657,10 @@ for fid in fragments:
 
     trainer = pl.Trainer(
         max_epochs=24,
-        accelerator="gpu",
+        accelerator="gpu", #gpu
         devices=1,
         logger=wandb_logger,
-        default_root_dir="/ifs/CS/replicated/data/people/dhu34/vesuvius-challenge/vesuvius_model/trainingoutputs",
+        default_root_dir="./models",
         accumulate_grad_batches=1,
         precision='16-mixed',
         gradient_clip_val=1.0,
@@ -674,3 +674,4 @@ for fid in fragments:
     trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
 
     wandb.finish()
+
